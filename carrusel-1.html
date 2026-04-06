@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { font-family: sans-serif; background-color: #f4f4f4; padding: 10px; word-wrap: break-word; }
+    #display { white-space: pre-wrap; background: #fff; border: 1px solid #ccc; padding: 10px; }
+  </style>
+</head>
+<body>
+  <strong>Raw Data Received:</strong>
+  <pre id="display">Waiting for data from Velo...</pre>
+
+  <script type="text/javascript">
+    window.onmessage = (event) => {
+      if (event.data) {
+        // Display the raw data as a string
+        const rawData = typeof event.data === 'object' 
+                        ? JSON.stringify(event.data, null, 2) 
+                        : event.data;
+        
+        document.getElementById("display").innerText = rawData;
+        
+        // Optional: Log it to the browser console for debugging
+        console.log("Data received in iFrame:", event.data);
+      }
+    };
+  </script>
+</body>
+</html>
