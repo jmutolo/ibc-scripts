@@ -137,6 +137,90 @@
         transform: rotate(45deg);
     }
 
+    .video-modal {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.65);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      z-index: 9999;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .video-modal.is-open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .video-modal-card {
+      position: relative;
+      width: min(960px, 92vw);
+      aspect-ratio: 16 / 9;
+      border-radius: 16px;
+      overflow: hidden;
+      background: black;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+      transform: scale(0.98);
+      opacity: 0;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .video-modal.is-ready .video-modal-card {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    .video-modal-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 0;
+      background: rgba(0, 0, 0, 0.55);
+      color: white;
+      font-size: 28px;
+      line-height: 1;
+      cursor: pointer;
+      z-index: 2;
+    }
+
+    .video-modal-player {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: black;
+    }
+
+    .video-modal-ghost {
+      position: fixed;
+      margin: 0;
+      z-index: 10000;
+      pointer-events: none;
+      overflow: hidden;
+      transform-origin: center center;
+      transition: all 0.34s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .video-modal-ghost img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
   </style>
   <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
 </head>
@@ -201,10 +285,112 @@
       </div>
     </div>
 
+    <div id="video-modal" class="video-modal" aria-hidden="true">
+      <div class="video-modal-card" role="dialog" aria-modal="true" aria-label="Video player popup">
+        <button id="video-modal-close" class="video-modal-close" aria-label="Cerrar video">&times;</button>
+        <video id="video-modal-player" class="video-modal-player" controls playsinline></video>
+      </div>
+    </div>
+
 
 
   <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
   <script type="text/javascript">
+    let splide = null;
+    let activeGhost = null;
+    let modalHandlersInitialized = false;
+    let carouselClickBound = false;
+
+    function openVideoModalFromItem(itemElement, videoUrl) {
+      if (!itemElement || !videoUrl) return;
+
+      const modal = document.getElementById('video-modal');
+      const modalCard = modal?.querySelector('.video-modal-card');
+      const videoPlayer = document.getElementById('video-modal-player');
+      if (!modal || !modalCard || !videoPlayer) return;
+
+      const sourceImage = itemElement.querySelector('img');
+      modal.classList.add('is-open');
+      modal.classList.remove('is-ready');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('modal-open');
+
+      const startRect = itemElement.getBoundingClientRect();
+      const endRect = modalCard.getBoundingClientRect();
+
+      if (activeGhost) {
+        activeGhost.remove();
+        activeGhost = null;
+      }
+
+      if (sourceImage) {
+        const ghost = sourceImage.cloneNode(true);
+        ghost.classList.add('video-modal-ghost');
+        ghost.style.left = `${startRect.left}px`;
+        ghost.style.top = `${startRect.top}px`;
+        ghost.style.width = `${startRect.width}px`;
+        ghost.style.height = `${startRect.height}px`;
+        ghost.style.borderRadius = '10px';
+        document.body.appendChild(ghost);
+        activeGhost = ghost;
+
+        requestAnimationFrame(() => {
+          ghost.style.left = `${endRect.left}px`;
+          ghost.style.top = `${endRect.top}px`;
+          ghost.style.width = `${endRect.width}px`;
+          ghost.style.height = `${endRect.height}px`;
+          ghost.style.borderRadius = '16px';
+        });
+
+        ghost.addEventListener('transitionend', () => {
+          modal.classList.add('is-ready');
+          videoPlayer.src = videoUrl;
+          videoPlayer.play().catch(() => {});
+          ghost.remove();
+          if (activeGhost === ghost) activeGhost = null;
+        }, { once: true });
+      } else {
+        modal.classList.add('is-ready');
+        videoPlayer.src = videoUrl;
+        videoPlayer.play().catch(() => {});
+      }
+    }
+
+    function closeVideoModal() {
+      const modal = document.getElementById('video-modal');
+      const videoPlayer = document.getElementById('video-modal-player');
+      if (!modal || !videoPlayer) return;
+
+      modal.classList.remove('is-open', 'is-ready');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('modal-open');
+
+      videoPlayer.pause();
+      videoPlayer.removeAttribute('src');
+      videoPlayer.load();
+
+      if (activeGhost) {
+        activeGhost.remove();
+        activeGhost = null;
+      }
+    }
+
+    function setupModalHandlers() {
+      const modal = document.getElementById('video-modal');
+      const closeButton = document.getElementById('video-modal-close');
+      if (!modal || !closeButton || modalHandlersInitialized) return;
+
+      closeButton.addEventListener('click', closeVideoModal);
+      modal.addEventListener('click', (event) => {
+        if (event.target === modal) closeVideoModal();
+      });
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') closeVideoModal();
+      });
+
+      modalHandlersInitialized = true;
+    }
+
     function renderCarousel(data) {
       const carousel = document.querySelector('#tutorial-carrousel .splide__list');
       if (!carousel) return;
@@ -217,16 +403,29 @@
       for (const item of items) {
         const listItem = document.createElement('li');
         listItem.classList.add('splide__slide');
-        listItem.innerHTML = `
-          <div class="carrousel-item">
-            <img src="${item?.miniatura || item?.portada || ''}" alt="${item?.title || ''}" style="width: 100%; height: 100%; object-fit: cover;">
-          </div>
-        `;
+
+        const card = document.createElement('div');
+        card.classList.add('carrousel-item');
+        card.dataset.videoUrl = item?.r2MediaUrl || '';
+
+        const image = document.createElement('img');
+        image.src = item?.miniatura || item?.portada || '';
+        image.alt = item?.title || '';
+        image.style.width = '100%';
+        image.style.height = '100%';
+        image.style.objectFit = 'cover';
+
+        card.appendChild(image);
+        listItem.appendChild(card);
         carousel.appendChild(listItem);
       }
 
       if (typeof Splide !== 'undefined') {
-        const splide = new Splide('#tutorial-carrousel', {
+        if (splide) {
+          splide.destroy(true);
+        }
+
+        splide = new Splide('#tutorial-carrousel', {
           type: 'loop',
           perPage: 3,
           perMove: 1,
@@ -237,6 +436,21 @@
           gap: '16px',
         });
         splide.mount();
+
+        if (!carouselClickBound) {
+          carousel.addEventListener('click', (event) => {
+            const card = event.target.closest('.carrousel-item');
+            if (!card) return;
+
+            const videoUrl = card.dataset.videoUrl;
+            if (!videoUrl) return;
+
+            openVideoModalFromItem(card, videoUrl);
+          });
+
+          carouselClickBound = true;
+        }
+
         /*arrows*/
         const leftArrow = document.querySelector('.side-arrow.left');
         const rightArrow = document.querySelector('.side-arrow.right');
@@ -263,8 +477,12 @@
       }
 
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => renderCarousel(payload), { once: true });
+        document.addEventListener('DOMContentLoaded', () => {
+          setupModalHandlers();
+          renderCarousel(payload);
+        }, { once: true });
       } else {
+        setupModalHandlers();
         renderCarousel(payload);
       }
     });
