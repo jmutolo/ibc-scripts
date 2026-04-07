@@ -2,28 +2,82 @@
 <html>
 <head>
   <style>
-    body { font-family: sans-serif; background-color: #f4f4f4; padding: 10px; word-wrap: break-word; }
-    #display { white-space: pre-wrap; background: #fff; border: 1px solid #ccc; padding: 10px; }
+    body {
+        margin: 0;
+    }
+
+    .carrousel-item {
+        width: 455px;
+        height: 256px;
+        border-radius: 10px;
+        overflow: hidden;
+    }
   </style>
+  <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
 </head>
 <body>
-  <strong>Raw Data Received:</strong>
-  <pre id="display">Waiting for data from Velo...</pre>
 
+    <section id="tutorial-carrousel" class="splide" aria-label="Tutorial Carrousel">
+        <div class="splide__track">
+            <ul class="splide__list">
+            </ul>
+        </div>
+    </section>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/js/splide.min.js"></script>
   <script type="text/javascript">
-    window.onmessage = (event) => {
-      if (event.data) {
-        // Display the raw data as a string
-        const rawData = typeof event.data === 'object' 
-                        ? JSON.stringify(event.data, null, 2) 
-                        : event.data;
-        
-        document.getElementById("display").innerText = rawData;
-        
-        // Optional: Log it to the browser console for debugging
-        console.log("Data received in iFrame:", event.data);
+    function renderCarousel(data) {
+      const carousel = document.querySelector('#tutorial-carrousel .splide__list');
+      if (!carousel) return;
+
+      const items = Array.isArray(data) ? data : [];
+      if (!items.length) return;
+
+      carousel.innerHTML = '';
+
+      for (const item of items) {
+        const listItem = document.createElement('li');
+        listItem.classList.add('splide__slide');
+        listItem.innerHTML = `
+          <div class="carrousel-item">
+            <img src="${item?.miniatura || item?.portada || ''}" alt="${item?.title || ''}" style="width: 100%; height: 100%; object-fit: cover;">
+          </div>
+        `;
+        carousel.appendChild(listItem);
       }
-    };
+
+      if (typeof Splide !== 'undefined') {
+        const splide = new Splide('#tutorial-carrousel', {
+          type: 'loop',
+          perPage: 3,
+          autoplay: true,
+        });
+        splide.mount();
+      } else {
+        console.error('Splide is not available in iframe');
+      }
+    }
+
+    window.addEventListener('message', (event) => {
+      if (!event.data) return;
+      console.log('Data received in iFrame:', event.data);
+
+      let payload = event.data;
+      if (typeof payload === 'string') {
+        try {
+          payload = JSON.parse(payload);
+        } catch (_) {
+          payload = [];
+        }
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => renderCarousel(payload), { once: true });
+      } else {
+        renderCarousel(payload);
+      }
+    });
   </script>
 </body>
 </html>
