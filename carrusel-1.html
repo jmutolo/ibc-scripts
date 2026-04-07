@@ -7,6 +7,7 @@
   <style>
     body {
         margin: 0;
+        overflow: hidden;
     }
 
     .carrousel-item {
@@ -222,6 +223,81 @@
       overflow: hidden;
     }
 
+    @media (max-width: 1279px) and (min-width: 479px) {
+      .tutorial-wrapper {
+        padding-top: 56px;
+        padding-bottom: 56px;
+      }
+
+      .tutorial-container {
+        gap: 48px;
+      }
+
+      .tutorial-title {
+        font-size: 34px;
+      }
+
+      .tutorial-carrousel-wrapper {
+        padding: 56px 24px;
+        gap: 32px;
+      }
+
+      .tutorial-carrousel-container {
+        gap: 20px;
+      }
+
+      #tutorial-carrousel {
+        width: 728px;
+        max-width: 728px;
+      }
+    }
+
+    @media (max-width: 478px) {
+      .tutorial-wrapper {
+        padding-top: 40px;
+        padding-bottom: 40px;
+      }
+
+      .tutorial-container {
+        gap: 32px;
+      }
+
+      .tutorial-title {
+        font-size: 26px;
+      }
+
+      .tutorial-carrousel-wrapper {
+        border-radius: 14px;
+        padding: 36px 14px;
+        gap: 24px;
+      }
+
+      .tutorial-carrousel-container {
+        gap: 12px;
+      }
+
+      #tutorial-carrousel {
+        width: calc(100vw - 88px);
+        max-width: calc(100vw - 88px);
+      }
+
+      .carrousel-item {
+        height: 180px;
+      }
+
+      .side-arrow svg {
+        width: 16px;
+        height: 30px;
+      }
+
+      .view-all-button {
+        height: 54px;
+        padding-left: 24px;
+        padding-right: 24px;
+        font-size: 14px;
+      }
+    }
+
   </style>
   <link href="https://cdn.jsdelivr.net/npm/@splidejs/splide@4.1.4/dist/css/splide.min.css" rel="stylesheet">
 </head>
@@ -435,6 +511,16 @@
           arrows: false,
           autoWidth: false,
           gap: '16px',
+          breakpoints: {
+            1279: {
+              perPage: 2,
+              perMove: 1,
+            },
+            900: {
+              perPage: 1,
+              perMove: 1,
+            },
+          },
         });
         splide.mount();
 
