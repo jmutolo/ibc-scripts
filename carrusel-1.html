@@ -57,6 +57,7 @@
       line-height: 110%;
       color: white;
       text-align: center;
+      user-select: none;
     }
 
     .tutorial-carrousel-wrapper {
@@ -426,7 +427,7 @@
         }
 
         splide = new Splide('#tutorial-carrousel', {
-          type: 'loop',
+          type: 'slide',
           perPage: 3,
           perMove: 1,
           autoplay: false,
